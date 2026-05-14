@@ -69,4 +69,137 @@ function App() {
 
   async function playerMove(index) {
     if (!contract) return;
+
+    if (board[index] !== 0) return;
+
+    const tx = await contract.play(index, 1);
+
+    await tx.wait();
+
+    const updated = [...board];
+
+    updated[index] = 1;
+
+    setBoard(updated);
+
+    const winner = checkWinner(updated);
+
+    if (winner === 1) {
+      setStatus("You Win!");
+      return;
+    }
+
+    if (!updated.includes(0)) {
+      setStatus("Draw!");
+      return;
+    }
+
+    setStatus("Computer Thinking...");
+
+    setTimeout(() => computerMove(updated), 1000);
+  }
+
+  async function computerMove(currentBoard) {
+    const empty = currentBoard
+      .map((v, i) => v === 0 ? i : null)
+      .filter(v => v !== null);
+
+    if (empty.length === 0) return;
+
+    const move = empty[Math.floor(Math.random() * empty.length)];
+
+    const tx = await contract.play(move, 2);
+
+    await tx.wait();
+
+    const updated = [...currentBoard];
+
+    updated[move] = 2;
+
+    setBoard(updated);
+
+    const winner = checkWinner(updated);
+
+    if (winner === 2) {
+      setStatus("Computer Wins!");
+      return;
+    }
+
+    if (!updated.includes(0)) {
+      setStatus("Draw!");
+      return;
+    }
+
+    setStatus("Your Turn (X)");
+  }
+
+  async function resetGame() {
+    if (!contract) return;
+
+    const tx = await contract.resetBoard();
+
+    await tx.wait();
+
+    setBoard(Array(9).fill(0));
+
+    setStatus("Your Turn (X)");
+  }
+
+  useEffect(() => {
+    connectWallet();
+  }, []);
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        marginTop: "40px"
+      }}
+    >
+      <h1>Tic Tac Toe</h1>
+
+      <p>{status}</p>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3,100px)",
+          gap: "10px"
+        }}
+      >
+        {board.map((cell, index) => (
+          <button
+            key={index}
+            onClick={() => playerMove(index)}
+            style={{
+              width: "100px",
+              height: "100px",
+              fontSize: "40px",
+              borderRadius: "10px",
+              border: "none"
+            }}
+          >
+            {cell === 1 ? "X" : cell === 2 ? "O" : ""}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={resetGame}
+        style={{
+          marginTop: "20px",
+          padding: "10px 20px",
+          borderRadius: "10px",
+          border: "none",
+          fontSize: "16px"
+        }}
+      >
+        Reset Game
+      </button>
+    </div>
+  );
+}
+
 export default App;
